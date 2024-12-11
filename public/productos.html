@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos - Tienda Macha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .search-container {
+            background: linear-gradient(135deg, #6c757d, #343a40);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-input {
+            border-radius: 2rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-button {
+            border-radius: 2rem;
+            padding: 0.75rem 1.5rem;
+        }
+
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            border-radius: 1rem;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-img-container {
+            position: relative;
+            padding-top: 75%;
+            overflow: hidden;
+        }
+
+        .card-img-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .stock-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            z-index: 1;
+        }
+
+        .stock-low {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .stock-out {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .stock-in {
+            background-color: #198754;
+            color: #fff;
+        }
+
+        .whatsapp-button {
+            background-color: #25d366;
+            color: white;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.5rem 1.5rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .whatsapp-button:hover {
+            background-color: #128c7e;
+            color: white;
+        }
+
+        .modal-content {
+            border-radius: 1rem;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #6c757d, #343a40);
+            color: white;
+            border-radius: 1rem 1rem 0 0;
+        }
+
+        @media (max-width: 767.98px) {
+            .col-md-4 {
+                width: 50%;
+            }
+            
+            .card-title {
+                font-size: 1rem;
+            }
+            
+            .card-text {
+                font-size: 0.875rem;
+            }
+            
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.875rem;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .search-container {
+                padding: 1rem;
+            }
+            
+            .search-input {
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Tienda Macha</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/productos.html">Productos</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login.html">Iniciar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="search-container">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" id="searchInput" class="form-control search-input" 
+                               placeholder="Buscar por nombre, descripción, marca o proveedor...">
+                        <button class="btn btn-primary search-button" onclick="buscarProductos()">
+                            <i class="bi bi-search me-2"></i>Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="productosContainer">
+            <!-- Los productos se cargarán aquí dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Modal para detalles del producto -->
+    <div class="modal fade" id="productoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles del Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="productoModalBody">
+                    <!-- El contenido se cargará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let todosLosProductos = [];
+
+        window.onload = async function() {
+            await cargarProductos();
+        };
+
+        async function cargarProductos() {
+            try {
+                const response = await fetch('/productos');
+                todosLosProductos = await response.json();
+                mostrarProductos(todosLosProductos);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cargar los productos');
+            }
+        }
+
+        function buscarProductos() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            const productosFiltrados = todosLosProductos.filter(producto => {
+                return (
+                    (producto.nombre_producto && producto.nombre_producto.toLowerCase().includes(searchTerm)) ||
+                    (producto.descripcion && producto.descripcion.toLowerCase().includes(searchTerm)) ||
+                    (producto.marca_producto && producto.marca_producto.toLowerCase().includes(searchTerm)) ||
+                    (producto.proveedor && producto.proveedor.toLowerCase().includes(searchTerm))
+                );
+            });
+
+            mostrarProductos(productosFiltrados);
+        }
+
+        document.getElementById('searchInput').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                buscarProductos();
+            }
+        });
+
+        function mostrarProductos(productos) {
+            const container = document.getElementById('productosContainer');
+            container.innerHTML = '';
+
+            if (productos.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center">
+                        <p class="text-muted">No se encontraron productos</p>
+                    </div>
+                `;
+                return;
+            }
+
+            productos.forEach(producto => {
+                const stockBadgeClass = producto.stock === 0 ? 'stock-out' : 
+                                      producto.stock <= 5 ? 'stock-low' : 'stock-in';
+                const stockText = producto.stock === 0 ? 'Sin stock' : 
+                                producto.stock <= 5 ? `¡Últimas ${producto.stock} unidades!` : 'En stock';
+                
+                const card = document.createElement('div');
+                card.className = 'col-md-4 col-sm-6';
+                card.innerHTML = `
+                    <div class="card h-100">
+                        <div class="card-img-container">
+                            <span class="badge stock-badge ${stockBadgeClass}">${stockText}</span>
+                            ${producto.imagen_producto ? 
+                                `<img src="/uploads/${producto.imagen_producto}" class="card-img-top" alt="${producto.nombre_producto}">` :
+                                `<div class="card-img-top bg-light d-flex align-items-center justify-content-center">
+                                    <span class="text-muted">Sin imagen</span>
+                                </div>`
+                            }
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">${producto.nombre_producto}</h5>
+                            <p class="card-text text-truncate">${producto.descripcion || 'Sin descripción'}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">$${producto.precio}</h6>
+                                <div>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="verDetalles(${JSON.stringify(producto).replace(/"/g, '&quot;')})">
+                                        Ver más
+                                    </button>
+                                    <a href="${generarEnlaceWhatsApp(producto)}" class="btn whatsapp-button btn-sm" target="_blank">
+                                        <i class="bi bi-whatsapp me-1"></i>Comprar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function verDetalles(producto) {
+            const stockText = producto.stock === 0 ? 'Sin stock' : 
+                            producto.stock <= 5 ? `¡Últimas ${producto.stock} unidades!` : 'En stock';
+            
+            const modalBody = document.getElementById('productoModalBody');
+            modalBody.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        ${producto.imagen_producto ? 
+                            `<img src="/uploads/${producto.imagen_producto}" class="img-fluid rounded" alt="${producto.nombre_producto}">` :
+                            `<div class="bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                                <span class="text-muted">Sin imagen</span>
+                            </div>`
+                        }
+                    </div>
+                    <div class="col-md-6">
+                        <h4>${producto.nombre_producto}</h4>
+                        <p class="text-muted">Marca: ${producto.marca_producto || 'No especificada'}</p>
+                        <p>${producto.descripcion || 'Sin descripción'}</p>
+                        <p><strong>Proveedor:</strong> ${producto.proveedor || 'No especificado'}</p>
+                        <div class="mb-3">
+                            <span class="badge ${producto.stock === 0 ? 'bg-danger' : producto.stock <= 5 ? 'bg-warning text-dark' : 'bg-success'}">
+                                ${stockText}
+                            </span>
+                        </div>
+                        <h3 class="mb-4">$${producto.precio}</h3>
+                        <a href="${generarEnlaceWhatsApp(producto)}" class="btn whatsapp-button btn-lg" target="_blank">
+                            <i class="bi bi-whatsapp me-2"></i>Comprar por WhatsApp
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            new bootstrap.Modal(document.getElementById('productoModal')).show();
+        }
+
+        function generarEnlaceWhatsApp(producto) {
+            const numero = "51930720474";
+            const mensaje = `Hola, me interesa el producto: ${producto.nombre_producto} - $${producto.precio}`;
+            return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

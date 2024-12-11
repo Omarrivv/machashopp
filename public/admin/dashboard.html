@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Tienda Macha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/admin/dashboard.html">Admin Panel</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/admin/dashboard.html">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" onclick="logout()">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestión de Productos</h2>
+            <div>
+                <button class="btn btn-secondary me-2" onclick="mostrarEliminados()">Ver Eliminados</button>
+                <button class="btn btn-primary" onclick="abrirModalAgregar()">
+                    Agregar Producto
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imagen</th>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Descripción</th>
+                        <th>Marca</th>
+                        <th>Proveedor</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="productosTable">
+                    <!-- Los productos se cargarán aquí dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para agregar/editar producto -->
+    <div class="modal fade" id="productoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Agregar Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productoForm" enctype="multipart/form-data">
+                        <input type="hidden" id="productoId" name="id_producto">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre_producto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="precio" class="form-label">Precio</label>
+                            <input type="number" class="form-control" id="precio" name="precio" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcion" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcion" name="descripcion" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="marca" class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="marca" name="marca_producto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="proveedor" class="form-label">Proveedor</label>
+                            <input type="text" class="form-control" id="proveedor" name="proveedor" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stock" class="form-label">Stock</label>
+                            <input type="number" class="form-control" id="stock" name="stock" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="imagen" class="form-label">Imagen</label>
+                            <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
+                            <div id="imagenPreview" class="mt-2 d-none">
+                                <img src="" alt="Vista previa" style="max-width: 200px; max-height: 200px;">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarProducto()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mostrandoEliminados = false;
+        let modoEdicion = false;
+
+        // Cargar productos
+        function cargarProductos() {
+            const url = mostrandoEliminados ? '/admin/productos/todos' : '/productos';
+            fetch(url)
+                .then(response => response.json())
+                .then(productos => {
+                    const tabla = document.getElementById('productosTable');
+                    tabla.innerHTML = '';
+                    productos.forEach(producto => {
+                        if (!mostrandoEliminados && producto.status === 'inactivo') return;
+                        
+                        const row = `
+                            <tr>
+                                <td>${producto.id_producto}</td>
+                                <td><img src="/uploads/${producto.imagen_producto}" alt="${producto.nombre_producto}" style="width: 50px; height: 50px; object-fit: cover;"></td>
+                                <td>${producto.nombre_producto}</td>
+                                <td>S/. ${producto.precio}</td>
+                                <td>${producto.descripcion}</td>
+                                <td>${producto.marca_producto}</td>
+                                <td>${producto.proveedor}</td>
+                                <td>${producto.stock}</td>
+                                <td>${producto.status}</td>
+                                <td>
+                                    ${producto.status === 'activo' ? 
+                                        `<button class="btn btn-sm btn-primary me-1" onclick='editarProducto(${JSON.stringify(producto)})'>Editar</button>
+                                         <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${producto.id_producto})">Eliminar</button>` :
+                                        `<button class="btn btn-sm btn-success" onclick="restaurarProducto(${producto.id_producto})">Restaurar</button>`
+                                    }
+                                </td>
+                            </tr>
+                        `;
+                        tabla.innerHTML += row;
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Abrir modal para agregar
+        function abrirModalAgregar() {
+            modoEdicion = false;
+            document.getElementById('modalTitle').textContent = 'Agregar Producto';
+            document.getElementById('productoForm').reset();
+            document.getElementById('productoId').value = '';
+            document.getElementById('imagen').required = true;
+            document.getElementById('imagenPreview').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('productoModal')).show();
+        }
+
+        // Editar producto
+        function editarProducto(producto) {
+            modoEdicion = true;
+            document.getElementById('modalTitle').textContent = 'Editar Producto';
+            document.getElementById('productoId').value = producto.id_producto;
+            document.getElementById('nombre').value = producto.nombre_producto;
+            document.getElementById('precio').value = producto.precio;
+            document.getElementById('descripcion').value = producto.descripcion;
+            document.getElementById('marca').value = producto.marca_producto;
+            document.getElementById('proveedor').value = producto.proveedor;
+            document.getElementById('stock').value = producto.stock;
+            document.getElementById('imagen').required = false;
+            
+            // Mostrar imagen actual
+            const imagenPreview = document.getElementById('imagenPreview');
+            imagenPreview.classList.remove('d-none');
+            imagenPreview.querySelector('img').src = `/uploads/${producto.imagen_producto}`;
+            
+            new bootstrap.Modal(document.getElementById('productoModal')).show();
+        }
+
+        // Guardar producto
+        function guardarProducto() {
+            const form = document.getElementById('productoForm');
+            const formData = new FormData(form);
+            const productoId = document.getElementById('productoId').value;
+            
+            let url = '/admin/productos';
+            let method = 'POST';
+            
+            if (modoEdicion) {
+                url = `/admin/productos/${productoId}`;
+                method = 'PUT';
+            }
+
+            fetch(url, {
+                method: method,
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'Producto guardado exitosamente');
+                    bootstrap.Modal.getInstance(document.getElementById('productoModal')).hide();
+                    form.reset();
+                    cargarProductos();
+                } else {
+                    throw new Error(data.error || 'Error al guardar el producto');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'Error al guardar el producto');
+            });
+        }
+
+        // Eliminar producto
+        function eliminarProducto(id) {
+            if (confirm('¿Está seguro de eliminar este producto?')) {
+                fetch(`/admin/productos/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        cargarProductos();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // Restaurar producto
+        function restaurarProducto(id) {
+            if (confirm('¿Está seguro de restaurar este producto?')) {
+                fetch(`/admin/productos/restaurar/${id}`, {
+                    method: 'PUT'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        cargarProductos();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // Mostrar/ocultar productos eliminados
+        function mostrarEliminados() {
+            mostrandoEliminados = !mostrandoEliminados;
+            cargarProductos();
+        }
+
+        // Vista previa de imagen
+        document.getElementById('imagen').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imagenPreview = document.getElementById('imagenPreview');
+                    imagenPreview.classList.remove('d-none');
+                    imagenPreview.querySelector('img').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Cerrar sesión
+        function logout() {
+            window.location.href = '/';
+        }
+
+        // Cargar productos al iniciar
+        document.addEventListener('DOMContentLoaded', cargarProductos);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Tienda Macha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Tienda Macha</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="mostrarInicio()">Panel Admin</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cargarProductos()">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cargarUsuarios()">Usuarios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cargarVentas()">Ventas</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cerrarSesion()">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="contenidoPrincipal">
+            <!-- Aquí se cargará el contenido dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Usuario -->
+    <div class="modal fade" id="usuarioModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="usuarioModalTitle">Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="usuarioForm">
+                        <input type="hidden" id="usuarioId">
+                        <div class="mb-3">
+                            <label for="nombreUsuario" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombreUsuario" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="apellidoUsuario" class="form-label">Apellido</label>
+                            <input type="text" class="form-control" id="apellidoUsuario" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="correoUsuario" class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="correoUsuario" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="contraseñaUsuario" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="contraseñaUsuario">
+                            <small class="text-muted">Dejar en blanco para mantener la contraseña actual al editar</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dniUsuario" class="form-label">DNI</label>
+                            <input type="text" class="form-control" id="dniUsuario" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rolUsuario" class="form-label">Rol</label>
+                            <select class="form-control" id="rolUsuario" required>
+                                <option value="admin">Administrador</option>
+                                <option value="recepcionista">Recepcionista</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarUsuario()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Nueva Venta -->
+    <div class="modal fade" id="ventaModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva Venta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ventaForm">
+                        <div class="mb-3">
+                            <label for="clienteVenta" class="form-label">Cliente</label>
+                            <select class="form-control" id="clienteVenta" required>
+                                <!-- Se llenará dinámicamente -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-success" onclick="agregarProductoVenta()">
+                                Agregar Producto
+                            </button>
+                        </div>
+                        <div id="productosVenta">
+                            <!-- Aquí se agregarán dinámicamente los productos -->
+                        </div>
+                        <div class="mt-3">
+                            <h5>Total: $<span id="totalVenta">0.00</span></h5>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarVenta()">Registrar Venta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Producto -->
+    <div class="modal fade" id="productoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productoModalTitle">Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productoForm" enctype="multipart/form-data">
+                        <input type="hidden" id="productoId">
+                        <div class="mb-3">
+                            <label for="nombreProducto" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombreProducto" name="nombre_producto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="precioProducto" class="form-label">Precio</label>
+                            <input type="number" class="form-control" id="precioProducto" name="precio" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcionProducto" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="descripcionProducto" name="descripcion" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="marcaProducto" class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="marcaProducto" name="marca_producto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="proveedorProducto" class="form-label">Proveedor</label>
+                            <input type="text" class="form-control" id="proveedorProducto" name="proveedor" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="stockProducto" class="form-label">Stock</label>
+                            <input type="number" class="form-control" id="stockProducto" name="stock" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="imagenProducto" class="form-label">Imagen</label>
+                            <input type="file" class="form-control" id="imagenProducto" name="imagen" accept="image/*">
+                            <div id="imagenPreview" class="mt-2 d-none">
+                                <img src="" alt="Vista previa" style="max-width: 200px; max-height: 200px;">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarProducto()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar autenticación al cargar la página
+        window.onload = async function() {
+            try {
+                const response = await fetch('/check-auth');
+                const data = await response.json();
+                if (!data.isAdmin) {
+                    window.location.href = '/login.html';
+                } else {
+                    mostrarInicio();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                window.location.href = '/login.html';
+            }
+        };
+
+        function mostrarInicio() {
+            let contenido = `
+                <h2>Panel de Administración</h2>
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Gestión de Productos</h5>
+                                <p class="card-text">Administra el inventario de productos de la tienda.</p>
+                                <button class="btn btn-primary" onclick="cargarProductos()">Gestionar Productos</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Gestión de Usuarios</h5>
+                                <p class="card-text">Administra los usuarios y sus roles en el sistema.</p>
+                                <button class="btn btn-primary" onclick="cargarUsuarios()">Gestionar Usuarios</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Gestión de Ventas</h5>
+                                <p class="card-text">Registra y administra las ventas realizadas.</p>
+                                <button class="btn btn-primary" onclick="cargarVentas()">Gestionar Ventas</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('contenidoPrincipal').innerHTML = contenido;
+        }
+
+        async function cargarProductos() {
+            try {
+                const response = await fetch('/admin/productos/todos');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar productos');
+                }
+
+                let contenido = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Gestión de Productos</h2>
+                        <button class="btn btn-success" onclick="mostrarFormularioNuevoProducto()">Nuevo Producto</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Imagen</th>
+                                    <th>Nombre</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.productos.forEach(producto => {
+                    contenido += `
+                        <tr>
+                            <td>${producto.id_producto}</td>
+                            <td>
+                                ${producto.imagen_producto ? 
+                                    `<img src="/uploads/${producto.imagen_producto}" alt="${producto.nombre_producto}" style="width: 50px; height: 50px; object-fit: cover;">` : 
+                                    'Sin imagen'}
+                            </td>
+                            <td>${producto.nombre_producto}</td>
+                            <td>$${producto.precio}</td>
+                            <td>${producto.stock}</td>
+                            <td>
+                                <span class="badge ${producto.status === 'activo' ? 'bg-success' : 'bg-danger'}">
+                                    ${producto.status}
+                                </span>
+                            </td>
+                            <td>
+                                ${producto.status === 'activo' ? 
+                                    `<button class="btn btn-sm btn-primary me-1" onclick="editarProducto(${producto.id_producto})">Editar</button>
+                                     <button class="btn btn-sm btn-danger" onclick="eliminarProducto(${producto.id_producto})">Eliminar</button>` :
+                                    `<button class="btn btn-sm btn-success" onclick="restaurarProducto(${producto.id_producto})">Restaurar</button>`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                contenido += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('contenidoPrincipal').innerHTML = contenido;
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al cargar los productos');
+            }
+        }
+
+        async function cargarUsuarios() {
+            try {
+                const response = await fetch('/admin/usuarios');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar usuarios');
+                }
+
+                let contenido = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Gestión de Usuarios</h2>
+                        <button class="btn btn-success" onclick="mostrarFormularioNuevoUsuario()">Nuevo Usuario</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Correo</th>
+                                    <th>DNI</th>
+                                    <th>Rol</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.usuarios.forEach(usuario => {
+                    contenido += `
+                        <tr>
+                            <td>${usuario.id_usuario}</td>
+                            <td>${usuario.nombre} ${usuario.apellido}</td>
+                            <td>${usuario.correo_usuario}</td>
+                            <td>${usuario.dni}</td>
+                            <td>${usuario.rol}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary me-1" onclick="editarUsuario(${usuario.id_usuario})">Editar</button>
+                                <button class="btn btn-sm btn-danger" onclick="eliminarUsuario(${usuario.id_usuario})">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                contenido += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('contenidoPrincipal').innerHTML = contenido;
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al cargar los usuarios');
+            }
+        }
+
+        async function cargarVentas() {
+            try {
+                const response = await fetch('/admin/ventas');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar ventas');
+                }
+
+                let contenido = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Gestión de Ventas</h2>
+                        <button class="btn btn-success" onclick="mostrarFormularioNuevaVenta()">Nueva Venta</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Total</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.ventas.forEach(venta => {
+                    const fecha = new Date(venta.fecha_venta).toLocaleString();
+                    contenido += `
+                        <tr>
+                            <td>${venta.id_venta}</td>
+                            <td>${venta.nombre} ${venta.apellido}</td>
+                            <td>${fecha}</td>
+                            <td>$${venta.total}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="verDetallesVenta(${venta.id_venta})">
+                                    Ver Detalles
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                contenido += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('contenidoPrincipal').innerHTML = contenido;
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al cargar las ventas');
+            }
+        }
+
+        // Funciones para gestión de usuarios
+        function mostrarFormularioNuevoUsuario() {
+            document.getElementById('usuarioModalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('usuarioForm').reset();
+            document.getElementById('usuarioId').value = '';
+            document.getElementById('contraseñaUsuario').required = true;
+            new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+        }
+
+        async function editarUsuario(id) {
+            try {
+                const response = await fetch('/admin/usuarios');
+                const data = await response.json();
+                const usuario = data.usuarios.find(u => u.id_usuario === id);
+                
+                if (usuario) {
+                    document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
+                    document.getElementById('usuarioId').value = usuario.id_usuario;
+                    document.getElementById('nombreUsuario').value = usuario.nombre;
+                    document.getElementById('apellidoUsuario').value = usuario.apellido;
+                    document.getElementById('correoUsuario').value = usuario.correo_usuario;
+                    document.getElementById('dniUsuario').value = usuario.dni;
+                    document.getElementById('rolUsuario').value = usuario.rol;
+                    document.getElementById('contraseñaUsuario').required = false;
+                    
+                    new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cargar el usuario');
+            }
+        }
+
+        async function guardarUsuario() {
+            const id = document.getElementById('usuarioId').value;
+            const data = {
+                nombre: document.getElementById('nombreUsuario').value,
+                apellido: document.getElementById('apellidoUsuario').value,
+                correo_usuario: document.getElementById('correoUsuario').value,
+                dni: document.getElementById('dniUsuario').value,
+                rol: document.getElementById('rolUsuario').value
+            };
+
+            const contraseña = document.getElementById('contraseñaUsuario').value;
+            if (contraseña) {
+                data.contraseña = contraseña;
+            }
+
+            try {
+                const url = id ? `/admin/usuarios/${id}` : '/admin/usuarios';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('usuarioModal')).hide();
+                    cargarUsuarios();
+                    alert(result.message);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al guardar el usuario');
+            }
+        }
+
+        async function eliminarUsuario(id) {
+            if (confirm('¿Está seguro de eliminar este usuario?')) {
+                try {
+                    const response = await fetch(`/admin/usuarios/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        cargarUsuarios();
+                        alert(data.message);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert(error.message || 'Error al eliminar el usuario');
+                }
+            }
+        }
+
+        // Funciones para gestión de ventas
+        async function mostrarFormularioNuevaVenta() {
+            try {
+                const responseUsuarios = await fetch('/admin/usuarios');
+                const dataUsuarios = await responseUsuarios.json();
+                
+                const selectCliente = document.getElementById('clienteVenta');
+                selectCliente.innerHTML = '<option value="">Seleccione un cliente</option>';
+                dataUsuarios.usuarios.forEach(usuario => {
+                    selectCliente.innerHTML += `
+                        <option value="${usuario.id_usuario}">
+                            ${usuario.nombre} ${usuario.apellido} - ${usuario.dni}
+                        </option>
+                    `;
+                });
+
+                document.getElementById('productosVenta').innerHTML = '';
+                document.getElementById('totalVenta').textContent = '0.00';
+
+                new bootstrap.Modal(document.getElementById('ventaModal')).show();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al preparar el formulario de venta');
+            }
+        }
+
+        async function agregarProductoVenta() {
+            try {
+                const response = await fetch('/admin/productos/disponibles');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar productos');
+                }
+
+                const productos = data.productos;
+                if (productos.length === 0) {
+                    alert('No hay productos disponibles para venta');
+                    return;
+                }
+
+                const productoDiv = document.createElement('div');
+                productoDiv.className = 'row mb-2 align-items-end';
+                productoDiv.innerHTML = `
+                    <div class="col-5">
+                        <label class="form-label">Producto</label>
+                        <select class="form-control producto-select" onchange="actualizarPrecioProducto(this)" required>
+                            <option value="">Seleccione un producto</option>
+                            ${productos.map(p => `
+                                <option value="${p.id_producto}" 
+                                        data-precio="${p.precio}"
+                                        data-stock="${p.stock}">
+                                    ${p.nombre_producto} (Stock: ${p.stock})
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label">Stock</label>
+                        <input type="text" class="form-control stock-input" readonly>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" class="form-control cantidad-input" min="1" value="1" 
+                               onchange="actualizarSubtotal(this)" required>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label">Subtotal</label>
+                        <input type="text" class="form-control subtotal-input" readonly>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-danger" 
+                                onclick="this.closest('.row').remove(); actualizarTotalVenta()">X</button>
+                    </div>
+                `;
+
+                document.getElementById('productosVenta').appendChild(productoDiv);
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al agregar producto');
+            }
+        }
+
+        function actualizarPrecioProducto(select) {
+            const option = select.options[select.selectedIndex];
+            const row = select.closest('.row');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const stockInput = row.querySelector('.stock-input');
+            
+            if (option.value) {
+                const stock = option.dataset.stock;
+                stockInput.value = stock;
+                cantidadInput.max = stock;
+                actualizarSubtotal(cantidadInput);
+            } else {
+                stockInput.value = '';
+                cantidadInput.max = '';
+                row.querySelector('.subtotal-input').value = '';
+                actualizarTotalVenta();
+            }
+        }
+
+        function actualizarSubtotal(input) {
+            const row = input.closest('.row');
+            const select = row.querySelector('.producto-select');
+            const option = select.options[select.selectedIndex];
+            
+            if (option.value) {
+                const precio = parseFloat(option.dataset.precio);
+                const cantidad = parseInt(input.value) || 0;
+                const stock = parseInt(option.dataset.stock);
+                
+                if (cantidad > stock) {
+                    alert(`Solo hay ${stock} unidades disponibles`);
+                    input.value = stock;
+                    return actualizarSubtotal(input);
+                }
+                
+                const subtotal = precio * cantidad;
+                row.querySelector('.subtotal-input').value = subtotal.toFixed(2);
+                actualizarTotalVenta();
+            }
+        }
+
+        function actualizarTotalVenta() {
+            let total = 0;
+            document.querySelectorAll('.subtotal-input').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById('totalVenta').textContent = total.toFixed(2);
+        }
+
+        async function guardarVenta() {
+            const clienteId = document.getElementById('clienteVenta').value;
+            if (!clienteId) {
+                alert('Por favor seleccione un cliente');
+                return;
+            }
+
+            const productos = [];
+            const rows = document.querySelectorAll('#productosVenta .row');
+            
+            for (const row of rows) {
+                const select = row.querySelector('.producto-select');
+                const cantidad = parseInt(row.querySelector('.cantidad-input').value);
+                
+                if (!select.value || !cantidad) {
+                    alert('Por favor complete todos los campos de productos');
+                    return;
+                }
+
+                productos.push({
+                    id_producto: select.value,
+                    cantidad: cantidad
+                });
+            }
+
+            if (productos.length === 0) {
+                alert('Agregue al menos un producto a la venta');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/ventas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_usuario: clienteId,
+                        productos: productos
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
+                    
+                    // Mostrar resumen de la venta
+                    let resumen = `Venta realizada correctamente\n\n`;
+                    resumen += `Total: $${data.total}\n\n`;
+                    resumen += `Productos:\n`;
+                    data.detalles.forEach(detalle => {
+                        resumen += `- ${detalle.nombre_producto}: ${detalle.cantidad} x $${detalle.precio_unitario} = $${detalle.subtotal}\n`;
+                    });
+                    
+                    alert(resumen);
+                    cargarVentas();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al guardar la venta');
+            }
+        }
+
+        async function verDetallesVenta(idVenta) {
+            try {
+                const response = await fetch(`/admin/ventas/${idVenta}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar detalles de venta');
+                }
+
+                let contenido = `
+                    <div class="mb-3">
+                        <button class="btn btn-secondary" onclick="cargarVentas()">Volver a Ventas</button>
+                    </div>
+                    <h3>Detalles de Venta #${idVenta}</h3>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                let total = 0;
+                data.detalles.forEach(detalle => {
+                    const subtotal = detalle.cantidad * detalle.precio_unitario;
+                    total += subtotal;
+                    contenido += `
+                        <tr>
+                            <td>${detalle.nombre_producto}</td>
+                            <td>${detalle.cantidad}</td>
+                            <td>$${detalle.precio_unitario}</td>
+                            <td>$${subtotal.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+                
+                contenido += `
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-end">Total:</th>
+                                    <th>$${total.toFixed(2)}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('contenidoPrincipal').innerHTML = contenido;
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al cargar los detalles de la venta');
+            }
+        }
+
+        async function cerrarSesion() {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cerrar sesión');
+            }
+        }
+
+        function mostrarFormularioNuevoProducto() {
+            document.getElementById('productoModalTitle').textContent = 'Nuevo Producto';
+            document.getElementById('productoForm').reset();
+            document.getElementById('productoId').value = '';
+            document.getElementById('imagenPreview').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('productoModal')).show();
+        }
+
+        async function editarProducto(id) {
+            try {
+                const response = await fetch('/admin/productos/todos');
+                const data = await response.json();
+                const producto = data.productos.find(p => p.id_producto === id);
+                
+                if (producto) {
+                    document.getElementById('productoModalTitle').textContent = 'Editar Producto';
+                    document.getElementById('productoId').value = producto.id_producto;
+                    document.getElementById('nombreProducto').value = producto.nombre_producto;
+                    document.getElementById('precioProducto').value = producto.precio;
+                    document.getElementById('descripcionProducto').value = producto.descripcion || '';
+                    document.getElementById('marcaProducto').value = producto.marca_producto || '';
+                    document.getElementById('proveedorProducto').value = producto.proveedor || '';
+                    document.getElementById('stockProducto').value = producto.stock;
+
+                    if (producto.imagen_producto) {
+                        const imagenPreview = document.getElementById('imagenPreview');
+                        imagenPreview.classList.remove('d-none');
+                        imagenPreview.querySelector('img').src = `/uploads/${producto.imagen_producto}`;
+                    } else {
+                        document.getElementById('imagenPreview').classList.add('d-none');
+                    }
+                    
+                    new bootstrap.Modal(document.getElementById('productoModal')).show();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cargar el producto');
+            }
+        }
+
+        async function guardarProducto() {
+            const formData = new FormData(document.getElementById('productoForm'));
+            const id = document.getElementById('productoId').value;
+            
+            try {
+                const url = id ? `/admin/productos/${id}` : '/admin/productos';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('productoModal')).hide();
+                    cargarProductos();
+                    alert(data.message);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al guardar el producto');
+            }
+        }
+
+        async function eliminarProducto(id) {
+            if (confirm('¿Está seguro de eliminar este producto?')) {
+                try {
+                    const response = await fetch(`/admin/productos/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        cargarProductos();
+                        alert(data.message);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert(error.message || 'Error al eliminar el producto');
+                }
+            }
+        }
+
+        async function restaurarProducto(id) {
+            if (confirm('¿Está seguro de restaurar este producto?')) {
+                try {
+                    const response = await fetch(`/admin/productos/restaurar/${id}`, {
+                        method: 'PUT'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        cargarProductos();
+                        alert(data.message);
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert(error.message || 'Error al restaurar el producto');
+                }
+            }
+        }
+
+        // Vista previa de imagen
+        document.getElementById('imagenProducto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imagenPreview = document.getElementById('imagenPreview');
+                    imagenPreview.classList.remove('d-none');
+                    imagenPreview.querySelector('img').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

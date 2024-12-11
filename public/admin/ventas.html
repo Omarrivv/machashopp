@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Ventas - Tienda Macha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Tienda Macha</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin.html">Panel Admin</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/productos.html">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/usuarios.html">Usuarios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/admin/ventas.html">Ventas</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="cerrarSesion()">Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestión de Ventas</h2>
+            <button class="btn btn-success" onclick="mostrarFormularioNuevaVenta()">Nueva Venta</button>
+        </div>
+
+        <div id="contenidoPrincipal">
+            <!-- Aquí se cargará la tabla de ventas -->
+        </div>
+    </div>
+
+    <!-- Modal para Nueva Venta -->
+    <div class="modal fade" id="ventaModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva Venta</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ventaForm">
+                        <div class="mb-3">
+                            <label for="clienteVenta" class="form-label">Cliente</label>
+                            <select class="form-control" id="clienteVenta" required>
+                                <!-- Se llenará dinámicamente -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-success" onclick="agregarProductoVenta()">
+                                Agregar Producto
+                            </button>
+                        </div>
+                        <div id="productosVenta">
+                            <!-- Aquí se agregarán dinámicamente los productos -->
+                        </div>
+                        <div class="mt-3">
+                            <h5>Total: $<span id="totalVenta">0.00</span></h5>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarVenta()">Registrar Venta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar autenticación al cargar la página
+        window.onload = async function() {
+            try {
+                const response = await fetch('/check-auth');
+                const data = await response.json();
+                if (!data.isAdmin) {
+                    window.location.href = '/login.html';
+                } else {
+                    cargarVentas();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                window.location.href = '/login.html';
+            }
+        };
+
+        async function cargarVentas() {
+            try {
+                const response = await fetch('/admin/ventas');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar ventas');
+                }
+
+                let contenido = `
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Total</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.ventas.forEach(venta => {
+                    const fecha = new Date(venta.fecha_venta).toLocaleString();
+                    contenido += `
+                        <tr>
+                            <td>${venta.id_venta}</td>
+                            <td>${venta.nombre} ${venta.apellido}</td>
+                            <td>${fecha}</td>
+                            <td>$${venta.total}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="verDetallesVenta(${venta.id_venta})">
+                                    Ver Detalles
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                contenido += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('contenidoPrincipal').innerHTML = contenido;
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al cargar las ventas');
+            }
+        }
+
+        async function mostrarFormularioNuevaVenta() {
+            try {
+                // Cargar usuarios
+                const responseUsuarios = await fetch('/admin/usuarios');
+                const dataUsuarios = await responseUsuarios.json();
+                
+                const selectCliente = document.getElementById('clienteVenta');
+                selectCliente.innerHTML = '<option value="">Seleccione un cliente</option>';
+                dataUsuarios.usuarios.forEach(usuario => {
+                    selectCliente.innerHTML += `
+                        <option value="${usuario.id_usuario}">
+                            ${usuario.nombre} ${usuario.apellido} - ${usuario.dni}
+                        </option>
+                    `;
+                });
+
+                // Limpiar productos anteriores
+                document.getElementById('productosVenta').innerHTML = '';
+                document.getElementById('totalVenta').textContent = '0.00';
+
+                new bootstrap.Modal(document.getElementById('ventaModal')).show();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al preparar el formulario de venta');
+            }
+        }
+
+        async function agregarProductoVenta() {
+            try {
+                const response = await fetch('/admin/productos/disponibles');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar productos');
+                }
+
+                const productos = data.productos;
+                if (productos.length === 0) {
+                    alert('No hay productos disponibles para venta');
+                    return;
+                }
+
+                const productoDiv = document.createElement('div');
+                productoDiv.className = 'row mb-2 align-items-end';
+                productoDiv.innerHTML = `
+                    <div class="col-5">
+                        <label class="form-label">Producto</label>
+                        <select class="form-control producto-select" onchange="actualizarPrecioProducto(this)" required>
+                            <option value="">Seleccione un producto</option>
+                            ${productos.map(p => `
+                                <option value="${p.id_producto}" 
+                                        data-precio="${p.precio}"
+                                        data-stock="${p.stock}">
+                                    ${p.nombre_producto} (Stock: ${p.stock})
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label">Stock</label>
+                        <input type="text" class="form-control stock-input" readonly>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" class="form-control cantidad-input" min="1" value="1" 
+                               onchange="actualizarSubtotal(this)" required>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label">Subtotal</label>
+                        <input type="text" class="form-control subtotal-input" readonly>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-danger" 
+                                onclick="this.closest('.row').remove(); actualizarTotalVenta()">X</button>
+                    </div>
+                `;
+
+                document.getElementById('productosVenta').appendChild(productoDiv);
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al agregar producto');
+            }
+        }
+
+        function actualizarPrecioProducto(select) {
+            const option = select.options[select.selectedIndex];
+            const row = select.closest('.row');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            const stockInput = row.querySelector('.stock-input');
+            
+            if (option.value) {
+                const stock = option.dataset.stock;
+                stockInput.value = stock;
+                cantidadInput.max = stock;
+                actualizarSubtotal(cantidadInput);
+            } else {
+                stockInput.value = '';
+                cantidadInput.max = '';
+                row.querySelector('.subtotal-input').value = '';
+                actualizarTotalVenta();
+            }
+        }
+
+        function actualizarSubtotal(input) {
+            const row = input.closest('.row');
+            const select = row.querySelector('.producto-select');
+            const option = select.options[select.selectedIndex];
+            
+            if (option.value) {
+                const precio = parseFloat(option.dataset.precio);
+                const cantidad = parseInt(input.value) || 0;
+                const stock = parseInt(option.dataset.stock);
+                
+                if (cantidad > stock) {
+                    alert(`Solo hay ${stock} unidades disponibles`);
+                    input.value = stock;
+                    return actualizarSubtotal(input);
+                }
+                
+                const subtotal = precio * cantidad;
+                row.querySelector('.subtotal-input').value = subtotal.toFixed(2);
+                actualizarTotalVenta();
+            }
+        }
+
+        function actualizarTotalVenta() {
+            let total = 0;
+            document.querySelectorAll('.subtotal-input').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById('totalVenta').textContent = total.toFixed(2);
+        }
+
+        async function guardarVenta() {
+            const clienteId = document.getElementById('clienteVenta').value;
+            if (!clienteId) {
+                alert('Por favor seleccione un cliente');
+                return;
+            }
+
+            const productos = [];
+            const rows = document.querySelectorAll('#productosVenta .row');
+            
+            for (const row of rows) {
+                const select = row.querySelector('.producto-select');
+                const cantidad = parseInt(row.querySelector('.cantidad-input').value);
+                
+                if (!select.value || !cantidad) {
+                    alert('Por favor complete todos los campos de productos');
+                    return;
+                }
+
+                productos.push({
+                    id_producto: select.value,
+                    cantidad: cantidad
+                });
+            }
+
+            if (productos.length === 0) {
+                alert('Agregue al menos un producto a la venta');
+                return;
+            }
+
+            try {
+                const response = await fetch('/admin/ventas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_usuario: clienteId,
+                        productos: productos
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('ventaModal')).hide();
+                    
+                    // Mostrar resumen de la venta
+                    let resumen = `Venta realizada correctamente\n\n`;
+                    resumen += `Total: $${data.total}\n\n`;
+                    resumen += `Productos:\n`;
+                    data.detalles.forEach(detalle => {
+                        resumen += `- ${detalle.nombre_producto}: ${detalle.cantidad} x $${detalle.precio_unitario} = $${detalle.subtotal}\n`;
+                    });
+                    
+                    alert(resumen);
+                    cargarVentas();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al guardar la venta');
+            }
+        }
+
+        async function verDetallesVenta(idVenta) {
+            try {
+                const response = await fetch(`/admin/ventas/${idVenta}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al cargar detalles de venta');
+                }
+
+                let contenido = `
+                    <div class="mb-3">
+                        <button class="btn btn-secondary" onclick="cargarVentas()">Volver a Ventas</button>
+                    </div>
+                    <h3>Detalles de Venta #${idVenta}</h3>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                let total = 0;
+                data.detalles.forEach(detalle => {
+                    const subtotal = detalle.cantidad * detalle.precio_unitario;
+                    total += subtotal;
+                    contenido += `
+                        <tr>
+                            <td>${detalle.nombre_producto}</td>
+                            <td>${detalle.cantidad}</td>
+                            <td>$${detalle.precio_unitario}</td>
+                            <td>$${subtotal.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+                
+                contenido += `
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-end">Total:</th>
+                                    <th>$${total.toFixed(2)}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('contenidoPrincipal').innerHTML = contenido;
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Error al cargar los detalles de la venta');
+            }
+        }
+
+        async function cerrarSesion() {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cerrar sesión');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

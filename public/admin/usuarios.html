@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración de Usuarios - Tienda Macha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <style>
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .modal-header {
+            background-color: #f8f9fa;
+        }
+        @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 14px;
+            }
+            .btn-action {
+                padding: 0.2rem 0.4rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Tienda Macha - Admin</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/productos.html">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/admin/usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Gestión de Usuarios</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal">
+                <i class="bi bi-plus-circle"></i> Nuevo Usuario
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Correo</th>
+                        <th>DNI</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <!-- Los usuarios se cargarán aquí dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Usuario -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="apellido" class="form-label">Apellido</label>
+                            <input type="text" class="form-control" id="apellido" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="correo" class="form-label">Correo</label>
+                            <input type="email" class="form-control" id="correo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dni" class="form-label">DNI</label>
+                            <input type="text" class="form-control" id="dni" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="password">
+                            <small class="text-muted">Dejar en blanco para mantener la contraseña actual al editar</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rol" class="form-label">Rol</label>
+                            <select class="form-select" id="rol" required>
+                                <option value="admin">Admin</option>
+                                <option value="recepcionista">Recepcionista</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveUser">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let editing = false;
+
+        // Verificar si el usuario está autenticado y es admin
+        async function checkAuth() {
+            try {
+                const response = await fetch('/check-auth');
+                const data = await response.json();
+                if (!data.isAdmin) {
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        // Cargar usuarios
+        async function loadUsers() {
+            try {
+                const response = await fetch('/admin/usuarios');
+                const users = await response.json();
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                users.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${user.id_usuario}</td>
+                        <td>${user.nombre}</td>
+                        <td>${user.apellido}</td>
+                        <td>${user.correo_usuario}</td>
+                        <td>${user.dni}</td>
+                        <td>${user.rol}</td>
+                        <td class="action-buttons">
+                            <button class="btn btn-warning btn-action" onclick="editUser(${JSON.stringify(user).replace(/"/g, '&quot;')})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-danger btn-action" onclick="deleteUser(${user.id_usuario})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                alert('Error al cargar usuarios');
+            }
+        }
+
+        // Editar usuario
+        function editUser(user) {
+            editing = true;
+            document.getElementById('modalTitle').textContent = 'Editar Usuario';
+            document.getElementById('userId').value = user.id_usuario;
+            document.getElementById('nombre').value = user.nombre;
+            document.getElementById('apellido').value = user.apellido;
+            document.getElementById('correo').value = user.correo_usuario;
+            document.getElementById('dni').value = user.dni;
+            document.getElementById('rol').value = user.rol;
+            document.getElementById('password').value = '';
+            new bootstrap.Modal(document.getElementById('userModal')).show();
+        }
+
+        // Eliminar usuario
+        async function deleteUser(id) {
+            if (confirm('¿Está seguro de eliminar este usuario?')) {
+                try {
+                    const response = await fetch(`/admin/usuarios/${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        loadUsers();
+                    } else {
+                        alert('Error al eliminar usuario');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al eliminar usuario');
+                }
+            }
+        }
+
+        // Guardar usuario
+        document.getElementById('saveUser').addEventListener('click', async () => {
+            const formData = {
+                nombre: document.getElementById('nombre').value,
+                apellido: document.getElementById('apellido').value,
+                correo_usuario: document.getElementById('correo').value,
+                dni: document.getElementById('dni').value,
+                rol: document.getElementById('rol').value,
+                contraseña: document.getElementById('password').value
+            };
+
+            const url = editing ? `/admin/usuarios/${document.getElementById('userId').value}` : '/admin/usuarios';
+            const method = editing ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    document.getElementById('userForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Error al guardar usuario');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al guardar usuario');
+            }
+        });
+
+        // Limpiar formulario al abrir modal para nuevo usuario
+        document.getElementById('userModal').addEventListener('show.bs.modal', function (event) {
+            if (!editing) {
+                document.getElementById('userForm').reset();
+                document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
+            }
+            editing = false;
+        });
+
+        // Inicializar
+        checkAuth();
+        loadUsers();
+    </script>
+</body>
+</html>
