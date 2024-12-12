@@ -94,13 +94,27 @@ app.post('/login', async (req, res) => {
     try {
         const [users] = await pool.query('SELECT * FROM usuarios WHERE correo_usuario = ? AND contraseña = ?', [correo, password]);
         if (users.length > 0) {
-            req.session.user = users[0];
-            // Determinar la redirección basada en el rol
-            const redirect = users[0].rol === 'admin' ? '/admin.html' : '/productos.html';
+            const user = users[0];
+            // Crear objeto de sesión
+            req.session.user = {
+                id: user.id_usuario,
+                nombre: user.nombre,
+                apellido: user.apellido,
+                correo: user.correo_usuario,
+                rol: user.rol
+            };
+            
+            // Enviar datos para localStorage
             res.json({ 
                 success: true, 
-                role: users[0].rol,
-                redirect: redirect
+                user: {
+                    id: user.id_usuario,
+                    nombre: user.nombre,
+                    apellido: user.apellido,
+                    correo: user.correo_usuario,
+                    rol: user.rol
+                },
+                sessionId: req.session.id // Enviar ID de sesión
             });
         } else {
             res.status(401).json({ 
@@ -117,34 +131,84 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Ruta de logout
+// Verificar autenticación
+app.get('/check-auth', async (req, res) => {
+    try {
+        // Verificar si hay sesión activa
+        if (req.session.user) {
+            res.json({ 
+                isAuthenticated: true,
+                isAdmin: req.session.user.rol === 'admin',
+                user: req.session.user
+            });
+        } else {
+            res.json({ 
+                isAuthenticated: false,
+                isAdmin: false 
+            });
+        }
+    } catch (error) {
+        console.error('Error al verificar autenticación:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al verificar autenticación' 
+        });
+    }
+});
+
+// Ruta para renovar sesión
+app.post('/renew-session', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        
+        // Verificar si el usuario existe
+        const [users] = await pool.query('SELECT * FROM usuarios WHERE id_usuario = ?', [userId]);
+        
+        if (users.length > 0) {
+            const user = users[0];
+            // Renovar sesión
+            req.session.user = {
+                id: user.id_usuario,
+                nombre: user.nombre,
+                apellido: user.apellido,
+                correo: user.correo_usuario,
+                rol: user.rol
+            };
+            
+            res.json({ 
+                success: true,
+                user: req.session.user,
+                sessionId: req.session.id
+            });
+        } else {
+            res.status(401).json({ 
+                success: false, 
+                message: 'Usuario no encontrado' 
+            });
+        }
+    } catch (error) {
+        console.error('Error al renovar sesión:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al renovar sesión' 
+        });
+    }
+});
+
+// Logout route
 app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            return res.status(500).json({ success: false, message: 'Error al cerrar sesión' });
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Error al cerrar sesión' 
+            });
         }
-        res.json({ success: true, message: 'Sesión cerrada correctamente' });
+        res.json({ 
+            success: true, 
+            message: 'Sesión cerrada correctamente' 
+        });
     });
-});
-
-// Ruta para verificar estado de autenticación
-app.get('/check-auth', (req, res) => {
-    if (req.session.user) {
-        res.json({ 
-            isAuthenticated: true,
-            isAdmin: req.session.user.rol === 'admin',
-            user: {
-                id: req.session.user.id_usuario,
-                nombre: req.session.user.nombre,
-                rol: req.session.user.rol
-            }
-        });
-    } else {
-        res.json({ 
-            isAuthenticated: false,
-            isAdmin: false 
-        });
-    }
 });
 
 // Admin: Add product
