@@ -26,16 +26,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'secret-key',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Cambiado a true para permitir sesiones no inicializadas
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Cambia a true si usas HTTPS
         maxAge: 24 * 60 * 60 * 1000 // 24 horas
     }
 }));
 
-// Database connection
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
+.env.DB_HOST,
     user: process.env.DB_USER,
     port: process.env.DB_PORT, // Agregado el puerto
     password: process.env.DB_PASSWORD,
